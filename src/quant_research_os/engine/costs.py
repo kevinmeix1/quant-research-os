@@ -29,26 +29,27 @@ class TransactionCostModel(BaseModel):
     @classmethod
     def for_assumption(cls, assumption: CostAssumption | str) -> TransactionCostModel:
         assumption = CostAssumption(assumption)
+        # FX-oriented defaults (tighter than equity cash equities).
         presets = {
             CostAssumption.OPTIMISTIC: cls(
                 assumption=assumption,
-                proportional_bps=1.0,
-                spread_bps=0.5,
-                slippage_bps=0.25,
+                proportional_bps=0.5,
+                spread_bps=0.25,
+                slippage_bps=0.1,
                 fixed_cost_per_rebalance=0.0,
             ),
             CostAssumption.BASELINE: cls(
                 assumption=assumption,
-                proportional_bps=5.0,
-                spread_bps=2.0,
-                slippage_bps=1.0,
+                proportional_bps=1.5,
+                spread_bps=0.75,
+                slippage_bps=0.5,
                 fixed_cost_per_rebalance=0.0,
             ),
             CostAssumption.PESSIMISTIC: cls(
                 assumption=assumption,
-                proportional_bps=15.0,
-                spread_bps=8.0,
-                slippage_bps=5.0,
+                proportional_bps=5.0,
+                spread_bps=3.0,
+                slippage_bps=2.0,
                 fixed_cost_per_rebalance=0.0,
             ),
         }

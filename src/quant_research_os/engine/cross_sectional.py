@@ -50,6 +50,20 @@ def reversal_signal(prices: pd.DataFrame, lookback: int) -> pd.DataFrame:
     return -momentum_signal(prices, lookback)
 
 
+def _signal_matrix(prices: pd.DataFrame, cfg: CrossSectionalConfig) -> pd.DataFrame:
+    """Build CS scores without future information (features use only past prices)."""
+    from quant_research_os.features.library import FEATURE_GENERATORS
+
+    name = cfg.signal_name
+    if name in FEATURE_GENERATORS:
+        return FEATURE_GENERATORS[name](prices, cfg.lookback)
+    if name == "momentum":
+        return momentum_signal(prices, cfg.lookback)
+    if name == "reversal":
+        return reversal_signal(prices, cfg.lookback)
+    raise ValueError(f"unknown signal_name: {name}")
+
+
 def scores_to_weights(scores: pd.Series, cfg: CrossSectionalConfig) -> pd.Series:
     s = scores.dropna()
     w = pd.Series(0.0, index=scores.index)
@@ -84,12 +98,6 @@ def scores_to_weights(scores: pd.Series, cfg: CrossSectionalConfig) -> pd.Series
     if len(short):
         w.loc[short] = -cfg.gross_exposure / (2 * len(short))
     return w
-
-
-def _signal_matrix(prices: pd.DataFrame, cfg: CrossSectionalConfig) -> pd.DataFrame:
-    if cfg.signal_name == "reversal":
-        return reversal_signal(prices, cfg.lookback)
-    return momentum_signal(prices, cfg.lookback)
 
 
 def run_cross_sectional_backtest(
@@ -129,23 +137,21 @@ def run_cross_sectional_backtest(
 
     for i in range(1, n):
         dt = prices.index[i]
-        # PnL from existing holdings using today's asset returns.
-        port_rets[i] = float((holdings * asset_rets.loc[dt]).sum())
 
-        # Drift holdings by asset returns (fixed shares).
-        holdings = holdings * (1.0 + asset_rets.loc[dt])
-
-        # Execute if a target is scheduled for this bar.
+        # Execute scheduled targets at the start of the bar (open/close convention),
+        # then earn this bar's return. signal[t] → scheduled[t+lag] → earns return[t+lag].
         sched = scheduled.loc[dt]
         if sched.notna().any():
             new_w = sched.fillna(0.0)
-            # Current portfolio weight vs unit capital: normalize by gross if needed.
-            # holdings are dollar exposures on unit capital after drift.
             turnover = float((new_w - holdings).abs().sum() / 2.0)
             turnovers[i] = turnover
             if turnover > 1e-12:
                 trade_count += int((new_w - holdings).abs().gt(1e-12).sum())
             holdings = new_w.copy()
+
+        port_rets[i] = float((holdings * asset_rets.loc[dt]).sum())
+        # Fixed-share drift between rebalances
+        holdings = holdings * (1.0 + asset_rets.loc[dt])
 
     ret_series = pd.Series(port_rets, index=prices.index).iloc[1:]
     turn_series = pd.Series(turnovers, index=prices.index).iloc[1:]

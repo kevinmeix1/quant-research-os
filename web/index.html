@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quant Research OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #0c1210;
+      --bg1: #14201a;
+      --bg2: #1c2c24;
+      --line: #2a4034;
+      --text: #e7f0ea;
+      --muted: #8aa396;
+      --accent: #c4a35a;
+      --good: #3d9a6a;
+      --bad: #c45c4a;
+      --warn: #c4923a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #1a3328 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #243018 0%, transparent 50%),
+        linear-gradient(180deg, var(--bg0), #0a0f0d 80%);
+      min-height: 100vh;
+    }
+    header {
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      background: rgba(12,18,16,.85);
+      z-index: 10;
+    }
+    .brand {
+      font-family: "IBM Plex Serif", serif;
+      font-size: 1.45rem;
+      letter-spacing: .02em;
+      color: var(--accent);
+    }
+    .sub { color: var(--muted); font-size: .85rem; }
+    main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+    nav { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    nav button {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: .45rem .85rem;
+      cursor: pointer;
+      font: inherit;
+    }
+    nav button.active, nav button:hover { border-color: var(--accent); color: var(--accent); }
+    .panel {
+      background: linear-gradient(160deg, var(--bg1), var(--bg2));
+      border: 1px solid var(--line);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    h2 { font-family: "IBM Plex Serif", serif; font-weight: 600; margin: 0 0 .75rem; font-size: 1.2rem; }
+    p.lead { color: var(--muted); margin-top: 0; }
+    textarea, input {
+      width: 100%;
+      background: var(--bg0);
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: .75rem;
+      font: inherit;
+      margin: .5rem 0 1rem;
+    }
+    button.cta {
+      background: var(--accent);
+      color: #1a1408;
+      border: 0;
+      padding: .65rem 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.cta:disabled { opacity: .5; cursor: wait; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { text-align: left; padding: .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 500; }
+    .pill {
+      display: inline-block;
+      padding: .15rem .45rem;
+      border: 1px solid var(--line);
+      font-size: .75rem;
+      letter-spacing: .04em;
+    }
+    .pill.good { color: var(--good); border-color: var(--good); }
+    .pill.bad { color: var(--bad); border-color: var(--bad); }
+    .pill.warn { color: var(--warn); border-color: var(--warn); }
+    pre {
+      background: var(--bg0);
+      border: 1px solid var(--line);
+      padding: .75rem;
+      overflow: auto;
+      max-height: 420px;
+      font-size: .78rem;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .75rem; }
+    .stat { border: 1px solid var(--line); padding: .75rem; }
+    .stat b { display: block; font-size: 1.25rem; margin-top: .25rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="brand">Quant Research OS</div>
+      <div class="sub">LLM plans · Deterministic engine computes</div>
+    </div>
+    <div class="sub" id="health">…</div>
+  </header>
+  <main>
+    <nav>
+      <button class="active" data-tab="dash">Dashboard</button>
+      <button data-tab="research">Research</button>
+      <button data-tab="alphas">Alpha Library</button>
+      <button data-tab="experiments">Experiments</button>
+      <button data-tab="portfolio">Portfolio</button>
+      <button data-tab="trace">Agent Trace</button>
+    </nav>
+
+    <section id="tab-dash" class="panel">
+      <h2>Laboratory status</h2>
+      <p class="lead">Submit a research question to run the autonomous quant workflow. All Sharpes and correlations come from tools.</p>
+      <div class="grid" id="stats"></div>
+    </section>
+
+    <section id="tab-research" class="panel hidden">
+      <h2>New research</h2>
+      <p class="lead">Flagship example prefilled — edit freely.</p>
+      <textarea id="question" rows="3">Find a robust cross-sectional FX strategy with low correlation to my existing momentum strategies.</textarea>
+      <button class="cta" id="runBtn">Run research</button>
+      <div id="runStatus" class="sub"></div>
+      <h2 style="margin-top:1.5rem">Recent research</h2>
+      <div id="researchList"></div>
+      <h2 style="margin-top:1.5rem">Latest report</h2>
+      <pre id="reportOut">—</pre>
+    </section>
+
+    <section id="tab-alphas" class="panel hidden">
+      <h2>Alpha library</h2>
+      <div id="alphaList"></div>
+    </section>
+
+    <section id="tab-experiments" class="panel hidden">
+      <h2>Experiments</h2>
+      <div id="expList"></div>
+    </section>
+
+    <section id="tab-portfolio" class="panel hidden">
+      <h2>Portfolio</h2>
+      <pre id="portfolioOut">—</pre>
+    </section>
+
+    <section id="tab-trace" class="panel hidden">
+      <h2>Agent trace</h2>
+      <input id="traceId" placeholder="Research ID" />
+      <button class="cta" id="traceBtn">Load trace</button>
+      <pre id="traceOut">—</pre>
+    </section>
+  </main>
+  <script>
+    const api = (path, opts) => fetch(path, opts).then(r => {
+      if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
+      return r.json();
+    });
+
+    function pill(status) {
+      const s = (status || '').toUpperCase();
+      let cls = '';
+      if (['ROBUST','PROMISING','PAPER_TRADING','COMPLETED','PASS'].includes(s)) cls = 'good';
+      else if (['REJECT','REJECTED','FAILED','CRITICAL'].includes(s)) cls = 'bad';
+      else cls = 'warn';
+      return `<span class="pill ${cls}">${s}</span>`;
+    }
+
+    document.querySelectorAll('nav button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+        document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+      });
+    });
+
+    async function refresh() {
+      try {
+        const h = await api('/health');
+        document.getElementById('health').textContent = h.status === 'ok' ? 'API online' : 'degraded';
+      } catch { document.getElementById('health').textContent = 'API offline — start: quant serve'; }
+
+      const [research, alphas, experiments, portfolio] = await Promise.all([
+        api('/research').catch(() => []),
+        api('/alphas').catch(() => []),
+        api('/experiments').catch(() => []),
+        api('/portfolio').catch(() => ({})),
+      ]);
+
+      document.getElementById('stats').innerHTML = [
+        ['Active research', research.length],
+        ['Alphas', alphas.length],
+        ['Experiments', experiments.length],
+        ['Paper / live candidates', (alphas.filter(a => ['PAPER_TRADING','ROBUST'].includes(a.status)).length)],
+      ].map(([k,v]) => `<div class="stat"><span class="sub">${k}</span><b>${v}</b></div>`).join('');
+
+      document.getElementById('researchList').innerHTML = research.length ? `<table><tr><th>ID</th><th>Status</th><th>Question</th></tr>${
+        research.map(r => `<tr><td>${r.research_id}</td><td>${pill(r.status)}</td><td>${r.user_question || ''}</td></tr>`).join('')
+      }</table>` : '<p class="sub">No research runs yet.</p>';
+
+      document.getElementById('alphaList').innerHTML = alphas.length ? `<table><tr><th>ID</th><th>Status</th><th>Hypothesis</th><th>Sharpe</th></tr>${
+        alphas.map(a => `<tr><td>${a.alpha_id}</td><td>${pill(a.status)}</td><td>${a.hypothesis}</td><td>${(a.metrics||{}).sharpe ?? '—'}</td></tr>`).join('')
+      }</table>` : '<p class="sub">Alpha library empty.</p>';
+
+      document.getElementById('expList').innerHTML = experiments.length ? `<table><tr><th>ID</th><th>Status</th><th>Hash</th></tr>${
+        experiments.map(e => `<tr><td>${e.experiment_id}</td><td>${pill(e.status)}</td><td>${e.configuration_hash || ''}</td></tr>`).join('')
+      }</table>` : '<p class="sub">No experiments.</p>';
+
+      document.getElementById('portfolioOut').textContent = JSON.stringify(portfolio, null, 2);
+    }
+
+    document.getElementById('runBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('runBtn');
+      const status = document.getElementById('runStatus');
+      btn.disabled = true;
+      status.textContent = 'Running autonomous research graph… (deterministic tools)';
+      try {
+        const report = await api('/research', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            question: document.getElementById('question').value,
+            universe: 'FX_G10',
+            max_experiments: 25,
+          }),
+        });
+        document.getElementById('reportOut').textContent = JSON.stringify(report, null, 2);
+        status.textContent = `Done — ${report.research_id} · ${report.decision}`;
+        document.getElementById('traceId').value = report.research_id;
+        await refresh();
+      } catch (e) {
+        status.textContent = 'Error: ' + e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('traceBtn').addEventListener('click', async () => {
+      const id = document.getElementById('traceId').value.trim();
+      if (!id) return;
+      const trace = await api('/research/' + id + '/trace');
+      document.getElementById('traceOut').textContent = JSON.stringify(trace, null, 2);
+    });
+
+    refresh();
+  </script>
+</body>
+</html>

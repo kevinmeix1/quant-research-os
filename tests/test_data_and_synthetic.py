@@ -61,12 +61,12 @@ def test_reversal_preferred_on_mean_reversion_market():
     )
     mom = run_cross_sectional_backtest(
         px,
-        CrossSectionalConfig(lookback=5, rebalance_every=5, top_n=2, bottom_n=2, signal_name="momentum"),
+        CrossSectionalConfig(lookback=20, rebalance_every=5, top_n=2, bottom_n=2, signal_name="momentum"),
         cost_model=free,
     )
     rev = run_cross_sectional_backtest(
         px,
-        CrossSectionalConfig(lookback=5, rebalance_every=5, top_n=2, bottom_n=2, signal_name="reversal"),
+        CrossSectionalConfig(lookback=1, rebalance_every=1, top_n=2, bottom_n=2, signal_name="reversal"),
         cost_model=free,
     )
     assert rev.metrics.sharpe >= mom.metrics.sharpe

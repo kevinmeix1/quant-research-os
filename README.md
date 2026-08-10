@@ -2,14 +2,25 @@
 
 Autonomous AI quantitative research laboratory.
 
-**Hard rule:** LLMs plan, critique, and orchestrate. Deterministic quantitative engines are the sole source of truth for financial metrics.
-
-This package lives beside the sibling `portfolio-agent` engine (`../`) and reuses its proven portfolio math via adapters rather than duplicating it.
+**Hard rule:** LLMs plan, critique, and orchestrate. Deterministic engines are the sole source of truth for financial metrics.
 
 ## Status
 
-- **Phase 0** — Architecture assessment complete (`docs/PHASE0_ARCHITECTURE.md`)
-- **Phase 1** — Quant foundation (in progress)
+Phases **0–10** implemented in this package:
+
+| Phase | Capability |
+|---|---|
+| 0 | Architecture assessment |
+| 1 | Domain models, CS backtest (lagged), costs, data quality, synthetic FX |
+| 2 | Experiment registry, config hashes, lineage |
+| 3 | Alpha library + diversification analysis |
+| 4 | Allowlisted tools + deterministic research agents |
+| 5 | Walk-forward, bootstrap, robustness, regimes, adversarial review |
+| 6 | Portfolio allocation + stress / risk veto |
+| 7 | Autonomous research orchestrator + budgets + memory |
+| 8 | Document ingest + event extraction (must still be backtested) |
+| 9 | Paper trading + degradation monitoring |
+| 10 | FastAPI + CLI + research dashboard |
 
 ## Quick start
 
@@ -21,27 +32,41 @@ pip install -e ".[dev]"
 pytest
 ```
 
-## Layout
+### Flagship research run
 
-```
-src/quant_research_os/
-  domain/       typed research objects
-  engine/       backtest, costs, metrics adapters
-  data/         catalog + quality
-  features/     feature contracts
-  strategies/   strategy protocol + CS engine
-  experiments/  experiment registry (Phase 2)
-  alpha/        alpha library (Phase 3)
-  agents/       research agents (Phase 4+)
-  tools/        allowlisted agent tools
-  orchestration/
-  reporting/
-docs/
-tests/
+```bash
+quant research run "Find a robust cross-sectional FX strategy with low correlation to my existing momentum strategies."
 ```
 
-## Flagship workflow (target)
+### API + dashboard
 
-> Find a robust cross-sectional FX strategy with low correlation to existing momentum strategies.
+```bash
+quant serve --port 8002
+# open http://127.0.0.1:8002/
+```
 
-See `docs/PHASE0_ARCHITECTURE.md` for the full map from sibling components → this OS.
+## Architecture
+
+```
+User / CLI / Web
+      ↓
+Research Orchestrator (explicit state machine)
+      ↓
+Agents (planner, data, hypothesis, validation, adversarial, risk)
+      ↓
+Allowlisted Tool Layer
+      ↓
+Deterministic Quant Engine (backtest, WF, stats, portfolio)
+      ↓
+SQLite research DB + Alpha library + Reports
+```
+
+Sibling `portfolio-agent` metrics are reused when available via adapter.
+
+## Safety
+
+- No live trading tools
+- No arbitrary shell execution for agents
+- Alpha metrics require tool provenance IDs
+- Research budgets prevent infinite loops
+- Rejection / inconclusive are first-class outcomes

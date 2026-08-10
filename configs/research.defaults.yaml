@@ -1,0 +1,29 @@
+# Quant Research OS — research budget defaults (Phase 1)
+
+budget:
+  max_experiments: 50
+  max_llm_calls: 200
+  max_runtime_seconds: 3600
+  allocation:
+    hypotheses: 10
+    implementations: 20
+    robustness_tests: 10
+    adversarial_tests: 10
+
+costs:
+  default_assumption: baseline
+
+backtest:
+  execution_lag: 1
+  risk_free_rate: 0.0
+
+universes:
+  fx_g10:
+    - EURUSD
+    - GBPUSD
+    - USDJPY
+    - AUDUSD
+    - USDCAD
+    - USDCHF
+    - NZDUSD
+    - EURGBP

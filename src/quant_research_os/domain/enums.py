@@ -1,0 +1,51 @@
+from __future__ import annotations
+
+from enum import Enum
+
+
+class ResearchStatus(str, Enum):
+    CREATED = "CREATED"
+    PLANNING = "PLANNING"
+    RUNNING = "RUNNING"
+    VALIDATING = "VALIDATING"
+    REVIEWING = "REVIEWING"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+    FAILED = "FAILED"
+
+
+class ExperimentStatus(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
+class AlphaStatus(str, Enum):
+    PROPOSED = "PROPOSED"
+    TESTING = "TESTING"
+    PROMISING = "PROMISING"
+    ROBUST = "ROBUST"
+    REJECTED = "REJECTED"
+    PAPER_TRADING = "PAPER_TRADING"
+    LIVE_CANDIDATE = "LIVE_CANDIDATE"
+    MONITORING = "MONITORING"
+    DEGRADED = "DEGRADED"
+    RETIRED = "RETIRED"
+
+
+class ResearchDecision(str, Enum):
+    REJECT = "REJECT"
+    INCONCLUSIVE = "INCONCLUSIVE"
+    PROMISING = "PROMISING"
+    ROBUST = "ROBUST"
+    REQUIRES_MORE_RESEARCH = "REQUIRES_MORE_RESEARCH"
+    NO_ROBUST_ALPHA_FOUND = "NO_ROBUST_ALPHA_FOUND"
+
+
+class Severity(str, Enum):
+    CRITICAL = "CRITICAL"
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"

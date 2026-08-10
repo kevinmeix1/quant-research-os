@@ -38,7 +38,10 @@ def analyze_regimes(
 
     vol_bin = pd.qcut(vol.rank(method="first"), 3, labels=["low_vol", "mid_vol", "high_vol"])
     trend_bin = np.where(trend > 0, "risk_on", "risk_off")
-    labels = [f"{a}|{b}" for a, b in zip(vol_bin.astype(str), trend_bin)]
+    labels_raw = [f"{a}|{b}" for a, b in zip(vol_bin.astype(str), trend_bin)]
+    # Shift by 1 so day-t return is attributed to regimes known through t-1 (no same-day leakage).
+    labels = ["unknown"] + labels_raw[:-1]
+    notes.append("Regime labels shifted by 1 bar to avoid same-day attribution leakage.")
 
     perf: dict[str, dict[str, float]] = {}
     ser_labels = pd.Series(labels, index=r.index)

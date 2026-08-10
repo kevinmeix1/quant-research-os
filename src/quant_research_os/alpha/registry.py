@@ -162,8 +162,15 @@ def seed_momentum_library(
     *,
     universe: str = "FX_G10",
 ) -> Alpha:
-    """Seed an 'existing momentum' alpha so diversification analyses have a baseline."""
+    """Seed a singleton 'existing momentum' alpha (idempotent)."""
+    fixed_strategy_id = "STR-existing-momentum"
+    fixed_alpha_id = "ALP-existing-momentum"
+    existing = registry.get(fixed_alpha_id)
+    if existing is not None:
+        return existing
+
     strategy = Strategy(
+        strategy_id=fixed_strategy_id,
         name="existing_cross_sectional_momentum",
         description="Baseline momentum book already in the library",
         economic_rationale="Trend continuation in FX cross-section",
@@ -173,11 +180,11 @@ def seed_momentum_library(
         version="1",
     )
     registry.save_strategy(strategy)
-    # Metrics from deterministic series
     from quant_research_os.engine.metrics import calculate_metrics
 
     metrics = calculate_metrics(momentum_returns)
     alpha = Alpha(
+        alpha_id=fixed_alpha_id,
         strategy_id=strategy.strategy_id,
         hypothesis="Existing momentum exposure",
         expected_economic_mechanism="cross-sectional trend following",
@@ -187,7 +194,6 @@ def seed_momentum_library(
         metrics_source_ids=["seed:momentum"],
         status=AlphaStatus.ROBUST,
     )
-    # Attach returns in robustness bag for correlation tools
     alpha.robustness = {
         "returns": momentum_returns.tolist(),
         "seed": True,

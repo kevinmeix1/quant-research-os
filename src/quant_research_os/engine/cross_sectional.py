@@ -129,7 +129,7 @@ def run_cross_sectional_backtest(
     # Schedule execution lag bars later.
     scheduled = target.shift(cfg.execution_lag)
 
-    # Holdings = dollar weights relative to unit capital at last rebalance.
+    # Holdings = portfolio weights at start-of-bar (sum of abs ≈ gross_exposure at last rebalance).
     holdings = pd.Series(0.0, index=cols)
     port_rets = np.zeros(n)
     turnovers = np.zeros(n)
@@ -137,21 +137,30 @@ def run_cross_sectional_backtest(
 
     for i in range(1, n):
         dt = prices.index[i]
+        r_i = asset_rets.loc[dt].fillna(0.0)
 
-        # Execute scheduled targets at the start of the bar (open/close convention),
-        # then earn this bar's return. signal[t] → scheduled[t+lag] → earns return[t+lag].
+        # Rebalance using current *weights* (not drifted notionals) so turnover is in weight space.
         sched = scheduled.loc[dt]
         if sched.notna().any():
             new_w = sched.fillna(0.0)
-            turnover = float((new_w - holdings).abs().sum() / 2.0)
+            cur_w = holdings.copy()
+            turnover = float((new_w - cur_w).abs().sum() / 2.0)
             turnovers[i] = turnover
             if turnover > 1e-12:
-                trade_count += int((new_w - holdings).abs().gt(1e-12).sum())
+                trade_count += int((new_w - cur_w).abs().gt(1e-12).sum())
             holdings = new_w.copy()
 
-        port_rets[i] = float((holdings * asset_rets.loc[dt]).sum())
-        # Fixed-share drift between rebalances
-        holdings = holdings * (1.0 + asset_rets.loc[dt])
+        # Simple return on beginning-of-bar weights.
+        port_ret = float((holdings * r_i).sum())
+        port_rets[i] = port_ret
+
+        # Fixed-share drift, then renormalize to weights so next day's return is PnL/NAV.
+        drifted = holdings * (1.0 + r_i)
+        denom = 1.0 + port_ret
+        if abs(denom) > 1e-12:
+            holdings = drifted / denom
+        else:
+            holdings = drifted * 0.0
 
     ret_series = pd.Series(port_rets, index=prices.index).iloc[1:]
     turn_series = pd.Series(turnovers, index=prices.index).iloc[1:]

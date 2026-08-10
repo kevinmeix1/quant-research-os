@@ -118,7 +118,7 @@
   <header>
     <div>
       <div class="brand">Quant Research OS</div>
-      <div class="sub">LLM plans · Deterministic engine computes</div>
+      <div class="sub">Deterministic planner · Deterministic engine computes</div>
     </div>
     <div class="sub" id="health">…</div>
   </header>
@@ -184,7 +184,16 @@
       if (['ROBUST','PROMISING','PAPER_TRADING','COMPLETED','PASS'].includes(s)) cls = 'good';
       else if (['REJECT','REJECTED','FAILED','CRITICAL'].includes(s)) cls = 'bad';
       else cls = 'warn';
-      return `<span class="pill ${cls}">${s}</span>`;
+      return `<span class="pill ${cls}">${escapeHtml(s)}</span>`;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
     document.querySelectorAll('nav button').forEach(btn => {
@@ -217,15 +226,15 @@
       ].map(([k,v]) => `<div class="stat"><span class="sub">${k}</span><b>${v}</b></div>`).join('');
 
       document.getElementById('researchList').innerHTML = research.length ? `<table><tr><th>ID</th><th>Status</th><th>Question</th></tr>${
-        research.map(r => `<tr><td>${r.research_id}</td><td>${pill(r.status)}</td><td>${r.user_question || ''}</td></tr>`).join('')
+        research.map(r => `<tr><td>${escapeHtml(r.research_id)}</td><td>${pill(r.status)}</td><td>${escapeHtml(r.user_question || '')}</td></tr>`).join('')
       }</table>` : '<p class="sub">No research runs yet.</p>';
 
       document.getElementById('alphaList').innerHTML = alphas.length ? `<table><tr><th>ID</th><th>Status</th><th>Hypothesis</th><th>Sharpe</th></tr>${
-        alphas.map(a => `<tr><td>${a.alpha_id}</td><td>${pill(a.status)}</td><td>${a.hypothesis}</td><td>${(a.metrics||{}).sharpe ?? '—'}</td></tr>`).join('')
+        alphas.map(a => `<tr><td>${escapeHtml(a.alpha_id)}</td><td>${pill(a.status)}</td><td>${escapeHtml(a.hypothesis)}</td><td>${(a.metrics||{}).sharpe ?? '—'}</td></tr>`).join('')
       }</table>` : '<p class="sub">Alpha library empty.</p>';
 
       document.getElementById('expList').innerHTML = experiments.length ? `<table><tr><th>ID</th><th>Status</th><th>Hash</th></tr>${
-        experiments.map(e => `<tr><td>${e.experiment_id}</td><td>${pill(e.status)}</td><td>${e.configuration_hash || ''}</td></tr>`).join('')
+        experiments.map(e => `<tr><td>${escapeHtml(e.experiment_id)}</td><td>${pill(e.status)}</td><td>${escapeHtml(e.configuration_hash || '')}</td></tr>`).join('')
       }</table>` : '<p class="sub">No experiments.</p>';
 
       document.getElementById('portfolioOut').textContent = JSON.stringify(portfolio, null, 2);

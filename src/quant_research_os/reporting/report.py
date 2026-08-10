@@ -82,7 +82,11 @@ def build_report(
     risk: dict[str, Any] | None,
     reproducibility: dict[str, Any],
 ) -> ResearchReport:
-    surviving = [c for c in candidates if c.get("status") in {"PROMISING", "ROBUST"}]
+    surviving = [
+        c
+        for c in candidates
+        if c.get("status") in {"PROMISING", "ROBUST", "PAPER_TRADING"}
+    ]
     rejected = [c for c in candidates if c.get("status") == "REJECTED"]
     best = None
     if surviving:

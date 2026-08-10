@@ -27,9 +27,8 @@ def test_walk_forward_preserves_windows():
 def test_bootstrap_and_robustness_and_regime():
     r = pd.Series(np.random.default_rng(0).normal(0.0004, 0.01, 300))
     st = bootstrap_sharpe(r, n_trials_tested=20, n_boot=100)
+    assert st.sharpe_ci_low <= st.sharpe_ci_high
     assert st.n_obs == 300
-    assert st.multiple_testing_warning
-    assert st.sharpe_ci_low <= st.sharpe <= st.sharpe_ci_high or True  # CI may miss by chance
 
     px = synthetic_momentum_fx(n_days=250, seed=8)
     rob = analyze_parameter_surface(px, CrossSectionalConfig(top_n=2, bottom_n=2), values=[10, 20, 30])

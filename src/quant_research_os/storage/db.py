@@ -12,6 +12,8 @@ from typing import Any, Iterator
 from quant_research_os.storage.paths import db_path
 
 SCHEMA = """
+PRAGMA foreign_keys = ON;
+
 CREATE TABLE IF NOT EXISTS research_requests (
   research_id TEXT PRIMARY KEY,
   payload TEXT NOT NULL,
@@ -22,7 +24,8 @@ CREATE TABLE IF NOT EXISTS research_requests (
 CREATE TABLE IF NOT EXISTS research_plans (
   research_id TEXT PRIMARY KEY,
   payload TEXT NOT NULL,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (research_id) REFERENCES research_requests(research_id)
 );
 
 CREATE TABLE IF NOT EXISTS hypotheses (
@@ -118,7 +121,59 @@ CREATE TABLE IF NOT EXISTS research_memory (
   payload TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS research_checkpoints (
+  research_id TEXT PRIMARY KEY,
+  node TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_experiments_research ON experiments(research_id);
+CREATE INDEX IF NOT EXISTS idx_experiments_status ON experiments(status);
+CREATE INDEX IF NOT EXISTS idx_alphas_status ON alphas(status);
+CREATE INDEX IF NOT EXISTS idx_traces_research ON agent_traces(research_id);
+CREATE INDEX IF NOT EXISTS idx_lineage_src ON lineage_edges(src_id);
+CREATE INDEX IF NOT EXISTS idx_lineage_dst ON lineage_edges(dst_id);
+CREATE INDEX IF NOT EXISTS idx_hypotheses_research ON hypotheses(research_id);
 """
+
+_ALLOWED_TABLES = frozenset(
+    {
+        "research_requests",
+        "research_plans",
+        "hypotheses",
+        "experiments",
+        "strategies",
+        "alphas",
+        "backtest_results",
+        "validation_results",
+        "reviews",
+        "reports",
+        "agent_traces",
+        "lineage_edges",
+        "paper_strategies",
+        "documents",
+        "events",
+        "research_memory",
+        "research_checkpoints",
+    }
+)
+_ALLOWED_KEYS = frozenset(
+    {
+        "research_id",
+        "hypothesis_id",
+        "experiment_id",
+        "strategy_id",
+        "alpha_id",
+        "backtest_id",
+        "validation_id",
+        "review_id",
+        "document_id",
+        "event_id",
+        "key",
+    }
+)
 
 
 def _utcnow() -> str:
@@ -132,8 +187,11 @@ class ResearchDB:
         self._init()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self.path))
+        conn = sqlite3.connect(str(self.path), timeout=30.0)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA busy_timeout = 5000")
         return conn
 
     def _init(self) -> None:
@@ -149,7 +207,20 @@ class ResearchDB:
         finally:
             c.close()
 
+    def _validate_table(self, table: str) -> None:
+        if table not in _ALLOWED_TABLES:
+            raise ValueError(f"table not allowlisted: {table}")
+
+    def _validate_key(self, key_col: str) -> None:
+        if key_col not in _ALLOWED_KEYS:
+            raise ValueError(f"key column not allowlisted: {key_col}")
+
     def upsert_json(self, table: str, key_col: str, key: str, payload: dict[str, Any], **extra: Any) -> None:
+        self._validate_table(table)
+        self._validate_key(key_col)
+        for k in extra:
+            if not k.replace("_", "").isalnum():
+                raise ValueError(f"invalid extra column: {k}")
         cols = [key_col, "payload", *extra.keys()]
         placeholders = ", ".join("?" for _ in cols)
         updates = ", ".join(f"{c}=excluded.{c}" for c in cols if c != key_col)
@@ -162,13 +233,25 @@ class ResearchDB:
             c.execute(sql, values)
 
     def get_json(self, table: str, key_col: str, key: str) -> dict[str, Any] | None:
+        self._validate_table(table)
+        self._validate_key(key_col)
         with self.conn() as c:
             row = c.execute(f"SELECT payload FROM {table} WHERE {key_col}=?", (key,)).fetchone()
         return json.loads(row["payload"]) if row else None
 
     def list_json(self, table: str, where: str | None = None, params: tuple = ()) -> list[dict[str, Any]]:
+        self._validate_table(table)
         sql = f"SELECT payload FROM {table}"
         if where:
+            # Only allow simple equality filters on known columns
+            allowed_where = {
+                "research_id=?",
+                "status=?",
+                "strategy_id=?",
+                "experiment_id=?",
+            }
+            if where not in allowed_where:
+                raise ValueError(f"where clause not allowlisted: {where}")
             sql += f" WHERE {where}"
         with self.conn() as c:
             rows = c.execute(sql, params).fetchall()
@@ -226,3 +309,20 @@ class ResearchDB:
         with self.conn() as c:
             row = c.execute("SELECT payload FROM research_memory WHERE key=?", (key,)).fetchone()
         return json.loads(row["payload"]) if row else None
+
+    def save_checkpoint(self, research_id: str, node: str, payload: dict[str, Any]) -> None:
+        self.upsert_json(
+            "research_checkpoints",
+            "research_id",
+            research_id,
+            {"node": node, **payload},
+            node=node,
+            updated_at=_utcnow(),
+        )
+
+    def get_checkpoint(self, research_id: str) -> dict[str, Any] | None:
+        return self.get_json("research_checkpoints", "research_id", research_id)
+
+    def is_cancelled(self, research_id: str) -> bool:
+        raw = self.get_json("research_requests", "research_id", research_id)
+        return bool(raw and raw.get("status") == "CANCELLED")

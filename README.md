@@ -2,7 +2,8 @@
 
 Autonomous AI quantitative research laboratory.
 
-**Hard rule:** LLMs plan, critique, and orchestrate. Deterministic engines are the sole source of truth for financial metrics.
+**Hard rule:** Deterministic engines are the sole source of truth for financial metrics.
+The current research planner is a **deterministic template** (not an LLM call). Optional LangGraph/OpenAI deps are reserved for a future agent mode.
 
 ## Status
 

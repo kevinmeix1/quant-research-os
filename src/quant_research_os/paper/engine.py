@@ -66,6 +66,8 @@ def simulate_paper_step(db: ResearchDB, alpha_id: str, n_days: int = 21, seed: i
             "alerts": alerts,
             "live_metrics": live_metrics.model_dump(),
             "updated_at": datetime.now(timezone.utc).isoformat(),
+            "simulation_mode": "iid_noise_from_backtest_stats",
+            "warning": "Not market replay — do not treat as live viability evidence.",
         }
     )
     status = "DEGRADED" if alerts else "PAPER_TRADING"

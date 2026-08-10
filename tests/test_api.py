@@ -10,10 +10,10 @@ def test_api_health_and_research(tmp_db, monkeypatch):
     import quant_research_os.storage.db as db_mod
     import quant_research_os.storage.paths as paths_mod
 
+    monkeypatch.delenv("QROS_API_KEY", raising=False)
     importlib.reload(paths_mod)
     importlib.reload(db_mod)
     importlib.reload(api_mod)
-    api_mod._db = db_mod.ResearchDB()
 
     client = TestClient(api_mod.app)
     assert client.get("/health").json()["status"] == "ok"

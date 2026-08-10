@@ -88,7 +88,35 @@ class ResearchOrchestrator:
             status=request.status.value,
             created_at=request.created_at.isoformat(),
         )
+        try:
+            return self._run_inner(request, max_experiments=max_experiments, max_hypotheses=max_hypotheses)
+        except Exception as exc:
+            request.status = ResearchStatus.FAILED
+            payload = request.model_dump(mode="json")
+            payload["error"] = str(exc)
+            self.db.upsert_json(
+                "research_requests",
+                "research_id",
+                request.research_id,
+                payload,
+                status=ResearchStatus.FAILED.value,
+                created_at=request.created_at.isoformat(),
+            )
+            self.db.add_trace(
+                request.research_id,
+                "orchestrator",
+                "failed",
+                {"error": str(exc)},
+            )
+            raise
 
+    def _run_inner(
+        self,
+        request: ResearchRequest,
+        *,
+        max_experiments: int,
+        max_hypotheses: int | None,
+    ) -> ResearchReport:
         budget = BudgetTracker(max_experiments=max_experiments, max_llm_calls=request.budget.max_llm_calls)
         ctx = ToolContext(self.db, research_id=request.research_id)
         tools = ToolRouter(ctx)
@@ -117,6 +145,7 @@ class ResearchOrchestrator:
             self.db.add_edge("research", request.research_id, "has_hypothesis", "hypothesis", h.hypothesis_id)
         budget.hypotheses_generated = len(plan.candidate_hypotheses)
         self._transition(state, "ResearchPlanner", "structured plan from research question")
+        self.db.save_checkpoint(request.research_id, state.node, {"budget": budget.snapshot()})
 
         # --- DataDiscovery ---
         ds = tools.call("list_datasets")
@@ -155,6 +184,17 @@ class ResearchOrchestrator:
         }
 
         for hyp in plan.candidate_hypotheses:
+            if self.db.is_cancelled(request.research_id):
+                request.status = ResearchStatus.CANCELLED
+                self.db.upsert_json(
+                    "research_requests",
+                    "research_id",
+                    request.research_id,
+                    request.model_dump(mode="json"),
+                    status=ResearchStatus.CANCELLED.value,
+                    created_at=request.created_at.isoformat(),
+                )
+                break
             if not budget.can_run_experiment():
                 break
             feature = SIGNAL_MAP.get(hyp.name, "momentum")
@@ -432,7 +472,7 @@ class ResearchOrchestrator:
         self.db.set_memory(
             f"research:{request.research_id}",
             "episodic",
-            {"decision": report.decision.value, "question": question, "candidates": len(state.candidates)},
+            {"decision": report.decision.value, "question": request.user_question, "candidates": len(state.candidates)},
         )
         request.status = ResearchStatus.COMPLETED
         self.db.upsert_json(

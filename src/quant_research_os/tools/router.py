@@ -116,11 +116,15 @@ class ToolRouter:
             return _err(name, f"tool not allowlisted: {name}")
         try:
             result = self._handlers[name](**kwargs)
-            self.ctx.log(name, {"kwargs": kwargs, "ok": result.ok, "error": result.error})
+            safe_kwargs = {
+                k: (f"<{len(v)} floats>" if isinstance(v, list) and len(v) > 20 else v)
+                for k, v in kwargs.items()
+            }
+            self.ctx.log(name, {"kwargs": safe_kwargs, "ok": result.ok, "error": result.error})
             return result
         except Exception as exc:
             err = _err(name, str(exc))
-            self.ctx.log(name, {"kwargs": kwargs, "ok": False, "error": str(exc)})
+            self.ctx.log(name, {"kwargs": {k: type(v).__name__ for k, v in kwargs.items()}, "ok": False, "error": str(exc)})
             return err
 
     # --- handlers ---

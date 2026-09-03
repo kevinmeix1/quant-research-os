@@ -1,0 +1,211 @@
+/* Quant Research OS — Design System
+   Institutional research-terminal aesthetic.
+   Precision over decoration. Density over whitespace. */
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg-0: #0a0c0f;
+  --bg-1: #0e1116;
+  --bg-2: #13171e;
+  --bg-3: #181d26;
+  --bg-4: #1e2530;
+  --bg-hover: #222a36;
+  --bg-active: #283040;
+
+  /* Borders */
+  --border-0: #1a2029;
+  --border-1: #252d3a;
+  --border-2: #343e4f;
+  --border-focus: #5b8def;
+
+  /* Text */
+  --text-0: #e8edf4;
+  --text-1: #b8c0cc;
+  --text-2: #8892a0;
+  --text-3: #5c6573;
+  --text-inverse: #0a0c0f;
+
+  /* Semantic status */
+  --status-pending: #6b7280;
+  --status-running: #3b82f6;
+  --status-completed: #22c55e;
+  --status-warning: #eab308;
+  --status-failed: #ef4444;
+  --status-rejected: #f97316;
+  --status-promising: #06b6d4;
+  --status-robust: #10b981;
+  --status-paper: #a855f7;
+  --status-live: #f43f5e;
+  --status-backtest: #64748b;
+
+  /* Accents — restrained, institutional */
+  --accent: #5b8def;
+  --accent-muted: #3d5f9e;
+  --accent-text: #93b4f5;
+  --positive: #34d399;
+  --negative: #f87171;
+  --caution: #fbbf24;
+
+  /* Typography */
+  --font-sans: var(--font-plex-sans), "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), "IBM Plex Mono", "SF Mono", "Consolas", monospace;
+  --font-display: var(--font-plex-sans), "IBM Plex Sans", system-ui, sans-serif;
+
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --fs-2xl: 22px;
+  --fs-3xl: 28px;
+
+  --lh-tight: 1.25;
+  --lh-normal: 1.45;
+  --lh-relaxed: 1.6;
+
+  /* Spacing — dense */
+  --sp-1: 2px;
+  --sp-2: 4px;
+  --sp-3: 6px;
+  --sp-4: 8px;
+  --sp-5: 12px;
+  --sp-6: 16px;
+  --sp-7: 20px;
+  --sp-8: 24px;
+  --sp-9: 32px;
+  --sp-10: 40px;
+
+  /* Layout */
+  --sidebar-w: 196px;
+  --sidebar-collapsed: 48px;
+  --topbar-h: 40px;
+  --command-h: 36px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+
+  /* Elevation — subtle */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+
+  /* Charts */
+  --chart-grid: #1a2029;
+  --chart-axis: #5c6573;
+  --chart-line-1: #5b8def;
+  --chart-line-2: #34d399;
+  --chart-line-3: #fbbf24;
+  --chart-line-4: #f87171;
+  --chart-fill: rgba(91, 141, 239, 0.12);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-med: 200ms;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg-0: #f4f6f9;
+  --bg-1: #ffffff;
+  --bg-2: #eef1f5;
+  --bg-3: #e6ebf1;
+  --bg-4: #dde3eb;
+  --bg-hover: #d5dde8;
+  --bg-active: #c8d2e0;
+  --border-0: #d8dee8;
+  --border-1: #c5cedb;
+  --border-2: #a8b4c4;
+  --text-0: #12161d;
+  --text-1: #2c3440;
+  --text-2: #5a6575;
+  --text-3: #8791a0;
+  --text-inverse: #ffffff;
+  --chart-grid: #e6ebf1;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg-0);
+  color: var(--text-0);
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  overflow: hidden;
+}
+
+a {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+::selection {
+  background: rgba(91, 141, 239, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Utility primitives */
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

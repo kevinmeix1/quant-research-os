@@ -21,7 +21,10 @@ from quant_research_os.storage.db import ResearchDB
 
 app = FastAPI(title="Quant Research OS", version="0.2.0")
 
-_allowed_origins = os.environ.get("QROS_CORS_ORIGINS", "http://127.0.0.1:8002,http://localhost:8002").split(",")
+_allowed_origins = os.environ.get(
+    "QROS_CORS_ORIGINS",
+    "http://127.0.0.1:8002,http://localhost:8002,http://127.0.0.1:3012,http://localhost:3012",
+).split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in _allowed_origins if o.strip()],
@@ -109,7 +112,7 @@ def list_research(
     db: ResearchDB = Depends(get_db),
 ) -> list[dict[str, Any]]:
     rows = db.list_json("research_requests")
-    return rows[offset : offset + limit]
+    return [_enrich_research_request(r) for r in rows[offset : offset + limit]]
 
 
 @app.get("/research/{research_id}", dependencies=[Depends(require_api_key)])
@@ -120,7 +123,23 @@ def get_research(research_id: str, db: ResearchDB = Depends(get_db)) -> dict[str
     report = db.get_json("reports", "research_id", research_id)
     plan = db.get_json("research_plans", "research_id", research_id)
     checkpoint = db.get_checkpoint(research_id)
-    return {"request": raw, "plan": plan, "report": report, "checkpoint": checkpoint}
+    return {
+        "request": _enrich_research_request(raw),
+        "plan": plan,
+        "report": report,
+        "checkpoint": checkpoint,
+    }
+
+
+def _enrich_research_request(row: dict[str, Any]) -> dict[str, Any]:
+    """Normalize field names for the workstation UI."""
+    out = dict(row)
+    if not out.get("question") and out.get("user_question"):
+        out["question"] = out["user_question"]
+    budget = out.get("budget")
+    if isinstance(budget, dict) and out.get("max_experiments") is None:
+        out["max_experiments"] = budget.get("max_experiments")
+    return out
 
 
 @app.get("/research/{research_id}/trace", dependencies=[Depends(require_api_key)])
@@ -153,7 +172,7 @@ def list_experiments(
 ) -> list[dict[str, Any]]:
     reg = ExperimentRegistry(db)
     rows = [e.model_dump(mode="json") for e in reg.list(research_id)]
-    return rows[:limit]
+    return [_enrich_experiment(db, r) for r in rows[:limit]]
 
 
 @app.get("/experiments/{experiment_id}", dependencies=[Depends(require_api_key)])
@@ -161,7 +180,35 @@ def get_experiment(experiment_id: str, db: ResearchDB = Depends(get_db)) -> dict
     exp = ExperimentRegistry(db).get(experiment_id)
     if not exp:
         raise HTTPException(404, "not found")
-    return exp.model_dump(mode="json")
+    return _enrich_experiment(db, exp.model_dump(mode="json"))
+
+
+def _enrich_experiment(db: ResearchDB, row: dict[str, Any]) -> dict[str, Any]:
+    """Attach metrics / dataset aliases from linked backtest results for the UI."""
+    eid = row.get("experiment_id")
+    if not eid:
+        return row
+    bts = [
+        b
+        for b in db.list_json("backtest_results")
+        if b.get("experiment_id") == eid
+    ]
+    if bts:
+        # Prefer the latest by backtest_id ordering as a stable tie-break.
+        bt = sorted(bts, key=lambda x: str(x.get("backtest_id")))[-1]
+        metrics = bt.get("metrics")
+        if isinstance(metrics, dict):
+            row = {**row, "metrics": metrics, "backtest_id": bt.get("backtest_id")}
+            # Friendly aliases used by the workstation tables.
+            if "ann_return" not in row["metrics"] and "annual_return" in row["metrics"]:
+                row["metrics"] = {
+                    **row["metrics"],
+                    "ann_return": row["metrics"]["annual_return"],
+                    "ann_vol": row["metrics"].get("volatility"),
+                }
+    if not row.get("dataset") and row.get("dataset_id"):
+        row["dataset"] = row["dataset_id"]
+    return row
 
 
 @app.get("/strategies", dependencies=[Depends(require_api_key)])
@@ -252,6 +299,39 @@ def paper_list(db: ResearchDB = Depends(get_db)) -> list[dict[str, Any]]:
     return list_paper(db)
 
 
+@app.get("/events/stream", dependencies=[Depends(require_api_key)])
+async def event_stream(db: ResearchDB = Depends(get_db)):
+    """Server-Sent Events for research workstation realtime updates."""
+    import asyncio
+    import json
+
+    from fastapi.responses import StreamingResponse
+
+    async def gen():
+        last_n = 0
+        while True:
+            try:
+                rows = db.list_json("research_requests")
+                n = len(rows)
+                if n != last_n:
+                    latest = rows[0] if rows else {}
+                    payload = {
+                        "type": "research.updated",
+                        "count": n,
+                        "latest_id": latest.get("research_id"),
+                        "status": latest.get("status"),
+                    }
+                    yield f"event: research.updated\ndata: {json.dumps(payload)}\n\n"
+                    last_n = n
+                else:
+                    yield f"event: heartbeat\ndata: {json.dumps({'ok': True})}\n\n"
+            except Exception as exc:  # noqa: BLE001
+                yield f"event: error\ndata: {json.dumps({'error': str(exc)})}\n\n"
+            await asyncio.sleep(2)
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
+
+
 _WEB = Path(__file__).resolve().parents[3] / "web" / "dist"
 if _WEB.exists():
     app.mount("/assets", StaticFiles(directory=_WEB / "assets"), name="assets")
@@ -259,7 +339,11 @@ if _WEB.exists():
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard() -> str:
-    index = Path(__file__).resolve().parents[3] / "web" / "index.html"
+    index = Path(__file__).resolve().parents[3] / "web" / "legacy-index.html"
     if index.exists():
         return index.read_text()
-    return "<h1>Quant Research OS API</h1><p>See /docs</p>"
+    return (
+        "<h1>Quant Research OS API</h1>"
+        "<p>Workstation UI: <code>cd web && npm run dev</code> → http://127.0.0.1:3012</p>"
+        "<p>API docs: <a href='/docs'>/docs</a></p>"
+    )

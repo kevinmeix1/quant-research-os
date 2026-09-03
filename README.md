@@ -39,12 +39,22 @@ pytest
 quant research run "Find a robust cross-sectional FX strategy with low correlation to my existing momentum strategies."
 ```
 
-### API + dashboard
+### API + workstation UI
 
 ```bash
-quant serve --port 8002
-# open http://127.0.0.1:8002/
+# Terminal 1 — API
+quant serve --host 127.0.0.1 --port 8002
+
+# Terminal 2 — Research workstation (Next.js)
+cd web && npm install && npm run dev
+# open http://127.0.0.1:3012
 ```
+
+## Documentation
+
+- `docs/UI_WORKSTATION.md` — workstation stages
+- `docs/Quant_Research_OS_Handbook.pdf` — bilingual technical handbook (English left / 中文 right; architecture, theory, diagrams, code walkthrough)
+- Generate/update handbook: `python docs/generate_handbook_pdf.py`
 
 ## Architecture
 

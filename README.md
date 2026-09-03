@@ -5,6 +5,17 @@ Autonomous AI quantitative research laboratory.
 **Hard rule:** Deterministic engines are the sole source of truth for financial metrics.
 The current research planner is a **deterministic template** (not an LLM call). Optional LangGraph/OpenAI deps are reserved for a future agent mode.
 
+```mermaid
+flowchart LR
+    Question[Research question] --> Orchestrator[Research orchestrator]
+    Orchestrator --> Agents[Planner, data, hypothesis, validation, risk agents]
+    Agents --> Tools[Allowlisted research tools]
+    Tools --> Engine[Deterministic backtest and portfolio engine]
+    Engine --> Evidence[Experiments, lineage, and reports]
+    Evidence --> Review[Robustness and risk veto]
+    Review --> Decision[Promote, reject, or mark inconclusive]
+```
+
 ## Status
 
 Phases **0–10** implemented in this package:
